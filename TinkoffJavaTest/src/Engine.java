@@ -1,15 +1,13 @@
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.util.Random;
-import java.util.StringJoiner;
+import java.util.*;
+import java.util.regex.Pattern;
 
 public class Engine {
-    private static File file;
-    private static FileWriter fw;
+    private static List<File> files = new ArrayList<>();
     private static StringJoiner strJoiner;
     private static final int GB = (int) Math.pow(1024, 3);
     private static final int MB = (int) Math.pow(1024, 2);
+    private static final int KB = (int) Math.pow(1024, 1);
 
     private static long heapSize = Runtime.getRuntime().totalMemory();
     private static long heapMaxSize = Runtime.getRuntime().maxMemory();
@@ -21,80 +19,98 @@ public class Engine {
                             "heapMaxSize: " + heapMaxSize/MB + "\n" +
                             "heapFreeSize: " + heapFreeSize/MB + "\n");
 
-       // strJoiner = new StringJoiner(",");
-       // int strJoinerCache = 0;
-//        while (strJoiner.length() + strJoinerCache < GB) {
-//            //rnd.ints().limit(1).forEach((x) -> {System.out.println(strJoiner.length() +  " : " + x); strJoiner.add(Integer.toString(x));});
-//            strJoiner.add(Integer.toString(rnd.nextInt()));
-//            if (Runtime.getRuntime().totalMemory() > heapMaxSize - GB ) {
-//                fw.write(strJoiner.toString());
-//                fw.flush();
-//                strJoinerCache += strJoiner.length();
-//                strJoiner = null;
-//                strJoiner = new StringJoiner(",");
-//            }
-//        }
-        generateFiles();
-        //FileChannelWrite(file, strJoiner);
+        while (files.size() < 5){
+            files.add(new File(files.size() + ".txt"));
+        }
+
+        for (File file : files) {
+            generateFile(file);
+        }
+
+        for (File file : files) {
+            CSVScan(file,1902407800);
+        }
     }
 
-    public static void generateFiles() throws IOException {
-        file = new File("1.txt");
-
+    public static void generateFile(File file) throws IOException {
+        int count = 0;
             if (!file.exists()) {
                 System.out.println("Created at " + file.getPath());
                 file.createNewFile();
+            }else{
+                return;
             }
 
-
-        fw = new FileWriter(file, true);
-
+        try(FileWriter fw = new FileWriter(file, true)){
 
         Random rnd = new Random();
         strJoiner = new StringJoiner(",");
         int strJoinerCache = 0;
         long time = System.currentTimeMillis();
+        // Генерацию чисел можно было бы сделать одной строчкой,если увеличить размер кучи (-Xmx),
+        // но это плохой ход, правильнее в данном случае управлять буффером записи
+        //rnd.ints().limit(?).forEach((x) -> strJoiner.add(Integer.toString(x)));
 
-        try{
             while (strJoiner.length() + strJoinerCache < GB) {
                 strJoiner.add(Integer.toString(rnd.nextInt()));
-                if (strJoiner.length() > MB){
-                    System.out.println("heapSize: " + Runtime.getRuntime().totalMemory()/MB);
-                    System.out.println("D " + strJoiner.length() + " : C " + strJoinerCache);
+                count++;
+                if (strJoiner.length() > KB){
+                    //System.out.println("heapSize: " + Runtime.getRuntime().totalMemory()/MB);
+                    //System.out.println("D " + strJoiner.length() + " : C " + strJoinerCache);
                     strJoinerCache += strJoiner.length();
+                    strJoiner.add("\n");
                     fw.write(strJoiner.toString());
 
                     strJoiner = null;
                     strJoiner = new StringJoiner(",");
-                    System.out.println("heapSize: " + Runtime.getRuntime().totalMemory()/MB);
-                    System.out.println("D " + strJoiner.length() + " : C " + strJoinerCache);
+                    //System.out.println("heapSize: " + Runtime.getRuntime().totalMemory()/MB);
+                    //System.out.println("D " + strJoiner.length() + " : C " + strJoinerCache);
                 }
             }
+            fw.write(strJoiner.toString());
             time = System.currentTimeMillis() - time;
+            System.out.println(time/1000f + " seconds");
+            System.out.println( "length: " + file.length() + "\ncount: " + count);
         }catch(OutOfMemoryError e)
         {
             e.getStackTrace();
             System.out.println(strJoiner.length()/MB + " ? " + file.getUsableSpace()/MB);
             System.out.println("heapSize: " + Runtime.getRuntime().totalMemory()/MB + "\n" + "heapMaxSize: " + heapMaxSize/MB);
         }
-        //BufferedWriter bufferedWriter = new BufferedWriter(fw, strJoiner.length());
-        fw.write(strJoiner.toString());
-
-        fw.close();
-
-
-        System.out.println(time/1000f + " seconds");
-        System.out.println( "length: " + file.length() + "\nSlength: " + strJoiner.length());
 
         }
 
-        public static void FileChannelWrite(File file, StringJoiner strJoiner) throws IOException {
-            FileChannel rwChannel = new RandomAccessFile(file, "rw").getChannel();
-            byte[] strbyte = strJoiner.toString().getBytes();
-            ByteBuffer bf = ByteBuffer.allocate(strbyte.length);
-            System.out.println(strbyte.length + " bytes allocated");
+        public static void CSVScan(File file, int number) {
+        List<String> filenames = new ArrayList<>();
+            try (BufferedReader in = new BufferedReader(new FileReader(file)))
+            {
+//               in.lines().forEach(s -> {
+//                   if (s.contains("964589")){
+//                       filenames.add(file.getName());
+//                   }
+//               });
+                boolean found = false;
+                long time = System.currentTimeMillis();
+                while (in.ready() && !found){
 
-            rwChannel.close();
-            bf = null;
+                    Scanner scan = new Scanner(in.readLine()).useDelimiter(",");
+                    while (scan.hasNext() && !found){
+                      //if (scan.nextInt() == number){
+                        if (scan.next().equals(Integer.toString(number))){
+                            filenames.add(file.getName());
+                            System.out.println("found ");
+                            found = true;
+                        }
+                    }
+                }
+                time = System.currentTimeMillis() - time;
+                System.out.println(time/1000f + " seconds");
+
+                System.out.println(filenames.get(0));
+            }
+            catch (IOException | NumberFormatException e)
+            {
+                e.printStackTrace();
+            }
         }
 }
