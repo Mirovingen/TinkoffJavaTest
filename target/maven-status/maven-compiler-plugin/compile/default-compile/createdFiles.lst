@@ -1,0 +1,6 @@
+io\spring\guides\gs_producing_web_service\package-info.class
+io\spring\guides\gs_producing_web_service\GetResultResponse.class
+io\spring\guides\gs_producing_web_service\Result.class
+io\spring\guides\gs_producing_web_service\GetResultRequest.class
+com\example\demo\Controller.class
+com\example\demo\EndPoint.class

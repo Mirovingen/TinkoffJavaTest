@@ -1,0 +1,28 @@
+package com.example.demo;
+import io.spring.guides.gs_producing_web_service.GetResultRequest;
+import io.spring.guides.gs_producing_web_service.GetResultResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ws.server.endpoint.annotation.Endpoint;
+import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
+import org.springframework.ws.server.endpoint.annotation.RequestPayload;
+import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+
+@Endpoint
+public class EndPoint {
+    private static final String NAMESPACE_URI = "http://spring.io/guides/gs-producing-web-service";
+
+    private Controller controller;
+
+    @Autowired
+    public EndPoint(){
+    }
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getResultRequest")
+    @ResponsePayload
+    public GetResultResponse getResultResponse(@RequestPayload GetResultRequest request) {
+        GetResultResponse response = new GetResultResponse();
+        response.setResult(controller.findNumbrer(request.getNumber()));
+
+        return response;
+    }
+}
